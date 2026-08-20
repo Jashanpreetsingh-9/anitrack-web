@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { FeatureCard } from "@/components/ui/Card";
 import { PageContainer } from "@/components/ui/PageContainer";
@@ -26,7 +27,15 @@ export default function HomePage() {
     <>
       <PageContainer width="lg" className="py-16 sm:py-24">
         <section className="mx-auto max-w-2xl text-center">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-stub">
+          <Image
+            src="/favicon.png"
+            alt="AniTrack"
+            width={80}
+            height={80}
+            priority
+            className="mx-auto h-16 w-16 sm:h-20 sm:w-20"
+          />
+          <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-stub">
             Built for anime fans
           </p>
           <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
