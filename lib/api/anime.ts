@@ -2,7 +2,10 @@ import { apiFetch } from "./client";
 import { Anime } from "@/types/anime";
 
 export function getAnimeDetail(jikanId: number) {
-  return apiFetch<Anime>(`/anime/mal/${jikanId}`, { revalidate: 3600 });
+  return apiFetch<Anime>(`/anime/mal/${jikanId}`, {
+    revalidate: 3600,
+    public: true,
+  });
 }
 
 export function getExploreAnime(params?: {
@@ -21,5 +24,6 @@ export function getExploreAnime(params?: {
   const qs = query.toString();
   return apiFetch<Anime[]>(`/anime/explore${qs ? `?${qs}` : ""}`, {
     revalidate: 3600,
+    public: true,
   });
 }

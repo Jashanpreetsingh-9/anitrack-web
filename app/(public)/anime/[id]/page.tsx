@@ -12,7 +12,12 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-async function loadAnime(jikanId: number) {
+async function loadAnime(idParam: string) {
+  const jikanId = Number(idParam);
+  if (!Number.isInteger(jikanId) || jikanId <= 0) {
+    notFound();
+  }
+
   try {
     return await getAnimeDetail(jikanId);
   } catch (error) {
@@ -25,7 +30,7 @@ async function loadAnime(jikanId: number) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const anime = await loadAnime(Number(id));
+  const anime = await loadAnime(id);
 
   return {
     title: `${anime.title} — AniTrack`,
@@ -58,7 +63,7 @@ function TagGroup({ label, tags }: { label: string; tags: Genre[] }) {
 
 export default async function AnimeDetailPage({ params }: Props) {
   const { id } = await params;
-  const anime = await loadAnime(Number(id));
+  const anime = await loadAnime(id);
 
   const genreTags = anime.genres.filter((g) => g.category === "genre");
   const themeTags = anime.genres.filter((g) => g.category === "theme");
