@@ -1,7 +1,7 @@
 import { OAuthLink } from "@/components/ui/Button";
 
 export function OAuthButtons({ label }: { label: "sign in" | "sign up" }) {
-  const verb = label === "sign up" ? "Sign up" : "Continue";
+  const verb = label === "sign up" ? "Sign up" : "Log in";
 
   return (
     <div className="space-y-2">

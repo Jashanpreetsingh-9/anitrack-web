@@ -16,8 +16,9 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      title="Log in"
-      description="Use your username or email and password, or continue with Google or GitHub."
+      eyebrow="Log in"
+      title="Welcome back"
+      description="Already have an account? Log in with your username and password, or the Google or GitHub account you used to register."
     >
       <LoginForm initialError={initialError} />
     </AuthShell>
