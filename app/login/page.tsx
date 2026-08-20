@@ -8,9 +8,11 @@ export default async function LoginPage({
 }) {
   const { error } = await searchParams;
   const initialError =
-    error === "oauth_failed"
-      ? "Something went wrong signing in. Please try again."
-      : null;
+    error === "oauth_conflict"
+      ? "This email is already registered with Google. Log in with Google instead."
+      : error === "oauth_failed"
+        ? "Something went wrong signing in. Please try again."
+        : null;
 
   return (
     <AuthShell

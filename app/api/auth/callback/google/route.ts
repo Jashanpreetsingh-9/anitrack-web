@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
-  exchangeOAuthIdentity,
+  exchangeOAuthIdentityResult,
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE_MAX_AGE,
 } from "@/lib/oauth";
@@ -77,14 +77,17 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
     }
 
-    const sessionToken = await exchangeOAuthIdentity({
+    const oauthResult = await exchangeOAuthIdentityResult({
       email: userInfo.email,
       name: userInfo.name ?? userInfo.email,
       provider: "google",
     });
+    const sessionToken = oauthResult.token;
     if (!sessionToken) {
       console.error("[oauth/google] exchangeOAuthIdentity returned falsy");
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      const errorParam =
+        oauthResult.status === 409 ? "oauth_conflict" : "oauth_failed";
+      return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
     }
 
     cookieStore.set("session", sessionToken, {
