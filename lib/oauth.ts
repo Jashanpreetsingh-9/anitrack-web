@@ -16,9 +16,22 @@ export type OAuthIdentity = {
   provider: "google" | "github";
 };
 
+export type OAuthExchangeResult = {
+  token: string | null;
+  status: number;
+  detail: string | null;
+};
+
 export async function exchangeOAuthIdentity(
   identity: OAuthIdentity,
 ): Promise<string | null> {
+  const result = await exchangeOAuthIdentityResult(identity);
+  return result.token;
+}
+
+export async function exchangeOAuthIdentityResult(
+  identity: OAuthIdentity,
+): Promise<OAuthExchangeResult> {
   const { apiUrl, internalAuthSecret } = getServerEnv();
   const response = await fetch(`${apiUrl}/auth/oauth`, {
     method: "POST",
@@ -29,15 +42,29 @@ export async function exchangeOAuthIdentity(
     body: JSON.stringify(identity),
   });
 
+  const text = await response.text();
+  let detail: string | null = null;
+  let accessToken: string | undefined;
+  try {
+    const data = JSON.parse(text) as { access_token?: string; detail?: unknown };
+    accessToken = data.access_token;
+    if (typeof data.detail === "string") detail = data.detail;
+  } catch {
+    detail = text || null;
+  }
+
   if (!response.ok) {
     console.error(
       "[exchangeOAuthIdentity] backend rejected",
       response.status,
-      await response.text(),
+      text,
     );
-    return null;
+    return { token: null, status: response.status, detail };
   }
 
-  const data: { access_token?: string } = await response.json();
-  return data.access_token ?? null;
+  return {
+    token: accessToken ?? null,
+    status: response.status,
+    detail,
+  };
 }
