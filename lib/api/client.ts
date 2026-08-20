@@ -17,6 +17,8 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   revalidate?: number | false;
+  /** Public pages should not send the user to /login if the API returns 401. */
+  public?: boolean;
 };
 
 async function parseErrorDetail(response: Response): Promise<string> {
@@ -62,6 +64,9 @@ export async function apiFetch<T>(
   const response = await fetchFromApi(path, options);
 
   if (response.status === 401) {
+    if (options.public) {
+      throw new ApiError(401, await parseErrorDetail(response));
+    }
     redirect("/login");
   }
 
