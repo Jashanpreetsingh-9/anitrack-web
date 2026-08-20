@@ -75,7 +75,10 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
       </form>
 
       <AuthDivider />
-      <OAuthButtons label="sign in" />
+      <p className="text-center font-mono text-[10px] uppercase tracking-wide text-warm-gray">
+        Or log in with a provider
+      </p>
+      <OAuthButtons intent="login" />
       <AuthSwitchLink mode="login" />
     </div>
   );

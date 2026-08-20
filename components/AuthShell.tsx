@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/Card";
 
 export function AuthShell({
   children,
+  eyebrow,
   title,
   description,
 }: {
   children: ReactNode;
+  eyebrow?: string;
   title?: string;
   description?: string;
 }) {
@@ -21,8 +23,15 @@ export function AuthShell({
           >
             AniTrack
           </Link>
+          {eyebrow && (
+            <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-stub">
+              {eyebrow}
+            </p>
+          )}
           {title && (
-            <h1 className="mt-4 font-display text-xl font-semibold text-ink">
+            <h1
+              className={`${eyebrow ? "mt-2" : "mt-4"} font-display text-xl font-semibold text-ink`}
+            >
               {title}
             </h1>
           )}

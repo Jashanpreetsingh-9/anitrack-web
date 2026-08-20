@@ -25,8 +25,9 @@ export default async function OnboardingPage() {
 
   return (
     <AuthShell
-      title="Finish setting up"
-      description="Choose a username and password. You can still sign in with Google or GitHub anytime."
+      eyebrow="Register"
+      title="Finish creating your account"
+      description="Last step: choose a username and password. After this you can log in with those credentials, or with Google or GitHub."
     >
       <OnboardingForm suggestedUsername={user.username} />
     </AuthShell>
