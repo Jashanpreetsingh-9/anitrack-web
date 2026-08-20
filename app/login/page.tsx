@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/LoginForm";
 import { AuthShell } from "@/components/AuthShell";
+import { authPageError } from "@/lib/auth-errors";
 
 export default async function LoginPage({
   searchParams,
@@ -7,12 +8,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const initialError =
-    error === "oauth_conflict"
-      ? "This email is already registered with Google. Log in with Google instead."
-      : error === "oauth_failed"
-        ? "Something went wrong signing in. Please try again."
-        : null;
+  const initialError = authPageError(error, "login");
 
   return (
     <AuthShell

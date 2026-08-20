@@ -2,8 +2,12 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   exchangeOAuthIdentityResult,
+  OAUTH_INTENT_COOKIE,
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE_MAX_AGE,
+  oauthErrorUrl,
+  oauthExchangeErrorCode,
+  parseOAuthIntent,
 } from "@/lib/oauth";
 import { fetchAuthUser, postLoginPath } from "@/lib/auth-session";
 
@@ -35,12 +39,16 @@ export async function GET(request: Request) {
 
   if (oauthError) {
     console.error("[oauth/github] provider returned error", oauthError);
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+    const cookieStore = await cookies();
+    const intent = parseOAuthIntent(cookieStore.get(OAUTH_INTENT_COOKIE)?.value);
+    return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
   }
 
   const cookieStore = await cookies();
   const storedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  const intent = parseOAuthIntent(cookieStore.get(OAUTH_INTENT_COOKIE)?.value);
   cookieStore.delete(OAUTH_STATE_COOKIE);
+  cookieStore.delete(OAUTH_INTENT_COOKIE);
 
   if (!code || !state || !storedState || state !== storedState) {
     console.error("[oauth/github] state mismatch", {
@@ -48,7 +56,7 @@ export async function GET(request: Request) {
       state,
       storedState,
     });
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+    return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
   }
 
   try {
@@ -75,13 +83,13 @@ export async function GET(request: Request) {
         tokenResponse.status,
         await tokenResponse.text(),
       );
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const tokenData: GitHubTokenResponse = await tokenResponse.json();
     if (!tokenData.access_token) {
       console.error("[oauth/github] no access_token in response", tokenData);
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const [userResponse, emailsResponse] = await Promise.all([
@@ -104,7 +112,7 @@ export async function GET(request: Request) {
         userStatus: userResponse.status,
         emailsStatus: emailsResponse.status,
       });
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const user: GitHubUser = await userResponse.json();
@@ -116,21 +124,26 @@ export async function GET(request: Request) {
         login: user.login,
         emailCount: emails.length,
       });
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const oauthResult = await exchangeOAuthIdentityResult({
       email,
       name: user.name ?? user.login ?? email,
       provider: "github",
+      intent,
     });
     const sessionToken = oauthResult.token;
 
     if (!sessionToken) {
       console.error("[oauth/github] exchangeOAuthIdentity returned falsy");
-      const errorParam =
-        oauthResult.status === 409 ? "oauth_conflict" : "oauth_failed";
-      return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
+      return NextResponse.redirect(
+        oauthErrorUrl(
+          origin,
+          intent,
+          oauthExchangeErrorCode(oauthResult.status, intent),
+        ),
+      );
     }
 
     cookieStore.set("session", sessionToken, {
@@ -146,6 +159,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${redirectPath}`);
   } catch (err) {
     console.error("[oauth/github] unexpected error", err);
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+    return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
   }
 }

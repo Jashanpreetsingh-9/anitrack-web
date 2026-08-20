@@ -2,8 +2,12 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   exchangeOAuthIdentityResult,
+  OAUTH_INTENT_COOKIE,
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE_MAX_AGE,
+  oauthErrorUrl,
+  oauthExchangeErrorCode,
+  parseOAuthIntent,
 } from "@/lib/oauth";
 import { fetchAuthUser, postLoginPath } from "@/lib/auth-session";
 
@@ -21,7 +25,9 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const cookieStore = await cookies();
   const storedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  const intent = parseOAuthIntent(cookieStore.get(OAUTH_INTENT_COOKIE)?.value);
   cookieStore.delete(OAUTH_STATE_COOKIE);
+  cookieStore.delete(OAUTH_INTENT_COOKIE);
 
   if (!code || !state || !storedState || state !== storedState) {
     console.error("[oauth/google] state mismatch", {
@@ -29,7 +35,7 @@ export async function GET(request: Request) {
       state,
       storedState,
     });
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+    return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
   }
 
   try {
@@ -50,12 +56,12 @@ export async function GET(request: Request) {
         tokenResponse.status,
         await tokenResponse.text(),
       );
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
     const tokenData: GoogleTokenResponse = await tokenResponse.json();
     if (!tokenData.access_token) {
       console.error("[oauth/google] no access_token in response", tokenData);
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const userInfoResponse = await fetch(
@@ -67,27 +73,32 @@ export async function GET(request: Request) {
         "[oauth/google] userinfo fetch failed",
         userInfoResponse.status,
       );
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
     const userInfo: GoogleUserInfo = await userInfoResponse.json();
     const isVerified =
       userInfo.email_verified === true || userInfo.email_verified === "true";
     if (!userInfo.email || !isVerified) {
       console.error("[oauth/google] email missing or unverified", userInfo);
-      return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+      return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
     }
 
     const oauthResult = await exchangeOAuthIdentityResult({
       email: userInfo.email,
       name: userInfo.name ?? userInfo.email,
       provider: "google",
+      intent,
     });
     const sessionToken = oauthResult.token;
     if (!sessionToken) {
       console.error("[oauth/google] exchangeOAuthIdentity returned falsy");
-      const errorParam =
-        oauthResult.status === 409 ? "oauth_conflict" : "oauth_failed";
-      return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
+      return NextResponse.redirect(
+        oauthErrorUrl(
+          origin,
+          intent,
+          oauthExchangeErrorCode(oauthResult.status, intent),
+        ),
+      );
     }
 
     cookieStore.set("session", sessionToken, {
@@ -103,6 +114,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${redirectPath}`);
   } catch (err) {
     console.error("[oauth/google] unexpected error", err);
-    return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+    return NextResponse.redirect(oauthErrorUrl(origin, intent, "oauth_failed"));
   }
 }

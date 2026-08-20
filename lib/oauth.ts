@@ -3,17 +3,43 @@ import { randomBytes } from "crypto";
 import { getServerEnv } from "@/lib/env";
 
 export const OAUTH_STATE_COOKIE = "oauth_state";
+export const OAUTH_INTENT_COOKIE = "oauth_intent";
 export const OAUTH_STATE_MAX_AGE = 60 * 5;
 export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
+export type OAuthIntent = "login" | "register";
+
 export function generateOAuthState(): string {
   return randomBytes(16).toString("hex");
+}
+
+export function parseOAuthIntent(value: string | null | undefined): OAuthIntent {
+  return value === "register" ? "register" : "login";
+}
+
+export function oauthErrorUrl(
+  origin: string,
+  intent: OAuthIntent,
+  error: string,
+): string {
+  const path = intent === "register" ? "/register" : "/login";
+  return `${origin}${path}?error=${error}`;
+}
+
+export function oauthExchangeErrorCode(
+  status: number,
+  intent: OAuthIntent,
+): string {
+  if (intent === "register" && status === 409) return "oauth_exists";
+  if (intent === "login" && status === 404) return "oauth_missing";
+  return "oauth_failed";
 }
 
 export type OAuthIdentity = {
   email: string;
   name: string;
   provider: "google" | "github";
+  intent: OAuthIntent;
 };
 
 export type OAuthExchangeResult = {

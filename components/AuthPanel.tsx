@@ -1,12 +1,13 @@
 import { OAuthLink } from "@/components/ui/Button";
 
-export function OAuthButtons({ label }: { label: "sign in" | "sign up" }) {
-  const verb = label === "sign up" ? "Sign up" : "Log in";
+export function OAuthButtons({ intent }: { intent: "login" | "register" }) {
+  const verb = intent === "register" ? "Sign up" : "Log in";
+  const qs = `?intent=${intent}`;
 
   return (
     <div className="space-y-2">
-      <OAuthLink href="/api/auth/google">{verb} with Google</OAuthLink>
-      <OAuthLink href="/api/auth/github">{verb} with GitHub</OAuthLink>
+      <OAuthLink href={`/api/auth/google${qs}`}>{verb} with Google</OAuthLink>
+      <OAuthLink href={`/api/auth/github${qs}`}>{verb} with GitHub</OAuthLink>
     </div>
   );
 }

@@ -1,7 +1,15 @@
 import { OAuthButtons, AuthSwitchLink } from "@/components/AuthPanel";
 import { AuthShell } from "@/components/AuthShell";
+import { authPageError } from "@/lib/auth-errors";
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  const initialError = authPageError(error, "register");
+
   return (
     <AuthShell
       eyebrow="Register"
@@ -23,7 +31,12 @@ export default function RegisterPage() {
             Pick a username and password on the next screen
           </li>
         </ol>
-        <OAuthButtons label="sign up" />
+        {initialError && (
+          <p className="font-mono text-xs text-stub" role="alert">
+            {initialError}
+          </p>
+        )}
+        <OAuthButtons intent="register" />
         <AuthSwitchLink mode="register" />
       </div>
     </AuthShell>

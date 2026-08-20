@@ -78,7 +78,7 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
       <p className="text-center font-mono text-[10px] uppercase tracking-wide text-warm-gray">
         Or log in with a provider
       </p>
-      <OAuthButtons label="sign in" />
+      <OAuthButtons intent="login" />
       <AuthSwitchLink mode="login" />
     </div>
   );
