@@ -11,7 +11,7 @@ export type StreamingLink = {
 
 export type Anime = {
   id: number;
-  jikan_id: number;
+  mal_id: number;
   title: string;
   synopsis: string | null;
   image_url: string | null;
@@ -33,7 +33,7 @@ export type Anime = {
 };
 
 export type AnimeSearchResult = {
-  jikan_id: number;
+  mal_id: number;
   title: string;
   synopsis: string | null;
   image_url: string | null;

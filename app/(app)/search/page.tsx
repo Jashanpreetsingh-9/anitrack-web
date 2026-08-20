@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { AnimeSearchResult } from "@/types/anime";
 import { AnimeTicket } from "@/components/AnimeTicket";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Input";
+import { PageContainer } from "@/components/ui/PageContainer";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AnimeSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -17,6 +23,7 @@ export default function SearchPage() {
 
     setIsSearching(true);
     setError(null);
+    setHasSearched(true);
     const response = await fetch(
       `/api/anime/search?q=${encodeURIComponent(query)}`,
     );
@@ -27,7 +34,7 @@ export default function SearchPage() {
       return;
     }
 
-    const data = await response.json();
+    const data: AnimeSearchResult[] = await response.json();
     setResults(data);
     setIsSearching(false);
   }
@@ -36,7 +43,7 @@ export default function SearchPage() {
     const response = await fetch("/api/watchlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jikan_id: malId }),
+      body: JSON.stringify({ mal_id: malId }),
     });
     if (response.ok) {
       setAddedIds((prev) => new Set(prev).add(malId));
@@ -44,51 +51,55 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12">
-      <h1 className="mb-6 font-display text-2xl font-semibold text-ink">
-        Search
-      </h1>
+    <PageContainer width="md">
+      <PageHeader
+        title="Search"
+        description="Find anime and add them to your watchlist."
+      />
 
-      <form onSubmit={handleSearch} className="mb-4 flex gap-2">
-        <input
+      <form onSubmit={handleSearch} className="mb-6 flex flex-col gap-2 sm:flex-row">
+        <Input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search anime..."
           aria-label="Search anime"
-          className="flex-1 rounded-sm border border-warm-gray bg-paper px-3 py-2 font-body text-sm text-ink placeholder:text-warm-gray focus:border-ink focus:outline-none"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={isSearching}
-          className="rounded-sm border border-ink bg-ink px-4 py-2 font-mono text-xs uppercase tracking-wide text-paper transition-colors hover:bg-stub hover:border-stub disabled:opacity-50"
-        >
+        <Button type="submit" disabled={isSearching} className="sm:shrink-0">
           {isSearching ? "Searching..." : "Search"}
-        </button>
+        </Button>
       </form>
 
       {error && (
-        <p className="mb-4 font-mono text-xs text-stub">{error}</p>
+        <p className="mb-4 font-mono text-xs text-stub" role="alert">
+          {error}
+        </p>
       )}
 
-      <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
+      {hasSearched && results.length === 0 && !isSearching && !error && (
+        <EmptyState message={`No results for "${query}"`} />
+      )}
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {results.map((result) => (
           <AnimeTicket
-            key={result.jikan_id}
-            href={`/anime/${result.jikan_id}`}
+            key={result.mal_id}
+            href={`/anime/${result.mal_id}`}
             title={result.title}
             imageUrl={result.image_url}
           >
-            <button
-              onClick={() => handleAdd(result.jikan_id)}
-              disabled={addedIds.has(result.jikan_id)}
-              className="mt-1 w-full rounded-sm border border-ink bg-ink px-2 py-1 font-mono text-xs uppercase tracking-wide text-paper transition-colors hover:bg-stub hover:border-stub disabled:opacity-40"
+            <Button
+              type="button"
+              onClick={() => handleAdd(result.mal_id)}
+              disabled={addedIds.has(result.mal_id)}
+              className="mt-1 w-full"
             >
-              {addedIds.has(result.jikan_id) ? "Added" : "Add"}
-            </button>
+              {addedIds.has(result.mal_id) ? "Added" : "Add"}
+            </Button>
           </AnimeTicket>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

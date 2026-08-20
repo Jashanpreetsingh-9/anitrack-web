@@ -15,4 +15,60 @@
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  background-image:
+    radial-gradient(
+      ellipse at 20% 0%,
+      rgb(139 30 30 / 0.04) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 100%,
+      rgb(74 93 78 / 0.06) 0%,
+      transparent 45%
+    );
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.ticket-divider {
+  height: 0.75rem;
+  width: 100%;
+  background-color: var(--color-warm-gray);
+  mask-image: radial-gradient(circle at 6px 0, transparent 4px, black 4.5px);
+  mask-size: 12px 12px;
+  mask-repeat: repeat-x;
+  mask-position: 0 -6px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.8s ease-in-out infinite;
 }

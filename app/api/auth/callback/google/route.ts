@@ -5,6 +5,7 @@ import {
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE_MAX_AGE,
 } from "@/lib/oauth";
+import { fetchAuthUser, postLoginPath } from "@/lib/auth-session";
 
 type GoogleTokenResponse = { access_token?: string };
 type GoogleUserInfo = {
@@ -93,7 +94,10 @@ export async function GET(request: Request) {
       maxAge: SESSION_COOKIE_MAX_AGE,
       path: "/",
     });
-    return NextResponse.redirect(`${origin}/watchlist`);
+
+    const user = await fetchAuthUser(sessionToken);
+    const redirectPath = user ? postLoginPath(user) : "/watchlist";
+    return NextResponse.redirect(`${origin}${redirectPath}`);
   } catch (err) {
     console.error("[oauth/google] unexpected error", err);
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);

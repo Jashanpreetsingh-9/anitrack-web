@@ -2,10 +2,7 @@ import { apiFetch } from "./client";
 import { Anime } from "@/types/anime";
 
 export function getAnimeDetail(jikanId: number) {
-  return apiFetch<Anime>("/anime", {
-    method: "POST",
-    body: { jikan_id: jikanId },
-  });
+  return apiFetch<Anime>(`/anime/mal/${jikanId}`, { revalidate: 3600 });
 }
 
 export function getExploreAnime(params?: {
@@ -22,5 +19,7 @@ export function getExploreAnime(params?: {
   if (params?.page) query.set("page", String(params.page));
 
   const qs = query.toString();
-  return apiFetch<Anime[]>(`/anime/explore${qs ? `?${qs}` : ""}`);
+  return apiFetch<Anime[]>(`/anime/explore${qs ? `?${qs}` : ""}`, {
+    revalidate: 3600,
+  });
 }
