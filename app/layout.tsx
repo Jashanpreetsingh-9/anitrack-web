@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   description:
     "Track what you're watching, get recommendations for what's next.",
   icons: {
-    icon: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
