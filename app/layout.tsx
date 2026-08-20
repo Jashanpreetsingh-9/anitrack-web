@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   title: "AniTrack",
   description:
     "Track what you're watching, get recommendations for what's next.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

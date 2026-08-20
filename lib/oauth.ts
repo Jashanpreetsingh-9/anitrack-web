@@ -1,5 +1,7 @@
 import { randomBytes } from "crypto";
 
+import { getServerEnv } from "@/lib/env";
+
 export const OAUTH_STATE_COOKIE = "oauth_state";
 export const OAUTH_STATE_MAX_AGE = 60 * 5;
 export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -17,17 +19,15 @@ export type OAuthIdentity = {
 export async function exchangeOAuthIdentity(
   identity: OAuthIdentity,
 ): Promise<string | null> {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/auth/oauth`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Auth-Secret": process.env.INTERNAL_AUTH_SECRET ?? "",
-      },
-      body: JSON.stringify(identity),
+  const { apiUrl, internalAuthSecret } = getServerEnv();
+  const response = await fetch(`${apiUrl}/auth/oauth`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Internal-Auth-Secret": internalAuthSecret,
     },
-  );
+    body: JSON.stringify(identity),
+  });
 
   if (!response.ok) {
     console.error(

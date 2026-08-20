@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/LoginForm";
+import { AuthShell } from "@/components/AuthShell";
 
 export default async function LoginPage({
   searchParams,
@@ -12,8 +13,11 @@ export default async function LoginPage({
       : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <AuthShell
+      title="Log in"
+      description="Use your username or email and password, or continue with Google or GitHub."
+    >
       <LoginForm initialError={initialError} />
-    </div>
+    </AuthShell>
   );
 }

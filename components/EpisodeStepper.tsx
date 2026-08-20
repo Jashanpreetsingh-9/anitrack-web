@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useWatchlistMutation } from "@/hooks/useWatchlistMutation";
+import type { WatchStatus } from "@/types/watchlist";
+
+import { Button } from "@/components/ui/Button";
 
 export function EpisodeStepper({
   entryId,
@@ -14,17 +17,13 @@ export function EpisodeStepper({
   entryId: number;
   count: number;
   totalEpisodes: number | null;
-  status: string;
+  status: WatchStatus;
   onCountChange: (next: number) => void;
-  onStatusChange?: (next: string) => void;
+  onStatusChange?: (next: WatchStatus) => void;
 }) {
-  const router = useRouter();
+  const { mutate, isSaving, error } = useWatchlistMutation(entryId);
+  const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(String(count));
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    setInputValue(String(count));
-  }, [count]);
 
   function clamp(value: number) {
     const min = Math.max(0, value);
@@ -33,13 +32,16 @@ export function EpisodeStepper({
 
   async function commitCount(next: number) {
     const clamped = clamp(next);
+    const prevCount = count;
+    const prevStatus = status;
+
     onCountChange(clamped);
     setInputValue(String(clamped));
-    setIsSaving(true);
 
-    const body: { episodes_watched: number; status?: string } = {
-      episodes_watched: clamped,
-    };
+    const body: {
+      episodes_watched: number;
+      status?: WatchStatus;
+    } = { episodes_watched: clamped };
 
     const atTotal = totalEpisodes !== null && clamped === totalEpisodes;
     const atZero = clamped === 0;
@@ -59,20 +61,22 @@ export function EpisodeStepper({
       onStatusChange?.("watching");
     }
 
-    await fetch(`/api/watchlist/${entryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    await mutate(body, undefined, () => {
+      onCountChange(prevCount);
+      onStatusChange?.(prevStatus);
+      setInputValue(String(prevCount));
     });
+  }
 
-    setIsSaving(false);
-    router.refresh();
+  function handleInputFocus() {
+    setIsEditing(true);
+    setInputValue(String(count));
   }
 
   function handleInputBlur() {
+    setIsEditing(false);
     const parsed = parseInt(inputValue, 10);
     if (Number.isNaN(parsed)) {
-      setInputValue(String(count));
       return;
     }
     if (parsed !== count) {
@@ -81,52 +85,71 @@ export function EpisodeStepper({
   }
 
   async function handleDelete() {
-    await fetch(`/api/watchlist/${entryId}`, { method: "DELETE" });
-    router.refresh();
+    if (!confirm("Remove this anime from your watchlist?")) return;
+    const response = await fetch(`/api/watchlist/${entryId}`, {
+      method: "DELETE",
+    });
+    if (response.ok) {
+      window.location.reload();
+    }
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => commitCount(count - 1)}
-        disabled={isSaving || count === 0}
-        className="rounded-sm border border-warm-gray px-2 py-1 font-mono text-xs disabled:opacity-40"
-      >
-        −
-      </button>
-      <input
-        type="number"
-        min={0}
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onBlur={handleInputBlur}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "-" || e.key === "e") e.preventDefault();
-        }}
-        disabled={isSaving}
-        className="w-12 [appearance:textfield] rounded-sm border border-warm-gray bg-paper px-1 py-1 text-center font-mono text-xs text-ink focus:border-ink focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-      />
-      {totalEpisodes && (
-        <span className="font-mono text-xs text-warm-gray">
-          / {totalEpisodes}
-        </span>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => commitCount(count - 1)}
+          disabled={isSaving || count === 0}
+          aria-label="Decrease episode count"
+        >
+          −
+        </Button>
+        <input
+          type="number"
+          min={0}
+          value={isEditing ? inputValue : String(count)}
+          onFocus={handleInputFocus}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={handleInputBlur}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "-" || e.key === "e") e.preventDefault();
+          }}
+          disabled={isSaving}
+          aria-label="Episodes watched"
+          className="w-12 [appearance:textfield] rounded-sm border border-warm-gray bg-paper px-1 py-1 text-center font-mono text-xs text-ink focus-visible:ring-2 focus-visible:ring-ink [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        {totalEpisodes && (
+          <span className="font-mono text-xs text-warm-gray">
+            / {totalEpisodes}
+          </span>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => commitCount(count + 1)}
+          disabled={
+            isSaving || (totalEpisodes !== null && count >= totalEpisodes)
+          }
+          aria-label="Increase episode count"
+        >
+          +
+        </Button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          className="ml-1 font-mono text-xs text-stub hover:underline focus-visible:ring-2 focus-visible:ring-ink"
+        >
+          Remove
+        </button>
+      </div>
+      {error && (
+        <p className="font-mono text-[10px] text-stub" role="alert">
+          {error}
+        </p>
       )}
-      <button
-        onClick={() => commitCount(count + 1)}
-        disabled={
-          isSaving || (totalEpisodes !== null && count >= totalEpisodes)
-        }
-        className="rounded-sm border border-warm-gray px-2 py-1 font-mono text-xs disabled:opacity-40"
-      >
-        +
-      </button>
-      <button
-        onClick={handleDelete}
-        className="ml-1 font-mono text-xs text-stub hover:underline"
-      >
-        Remove
-      </button>
     </div>
   );
 }

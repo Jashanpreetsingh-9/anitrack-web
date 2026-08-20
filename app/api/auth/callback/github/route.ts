@@ -5,6 +5,7 @@ import {
   OAUTH_STATE_COOKIE,
   SESSION_COOKIE_MAX_AGE,
 } from "@/lib/oauth";
+import { fetchAuthUser, postLoginPath } from "@/lib/auth-session";
 
 type GitHubTokenResponse = { access_token?: string; error?: string };
 type GitHubUser = { name?: string | null; login?: string };
@@ -96,7 +97,9 @@ export async function GET(request: Request) {
       path: "/",
     });
 
-    return NextResponse.redirect(`${origin}/watchlist`);
+    const authUser = await fetchAuthUser(sessionToken);
+    const redirectPath = authUser ? postLoginPath(authUser) : "/watchlist";
+    return NextResponse.redirect(`${origin}${redirectPath}`);
   } catch {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
   }

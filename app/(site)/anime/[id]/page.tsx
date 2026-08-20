@@ -1,14 +1,31 @@
 import { getAnimeDetail } from "@/lib/api/anime";
+import { ApiError } from "@/lib/api/client";
 import type { Metadata } from "next";
 import type { Genre } from "@/types/anime";
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { PageContainer } from "@/components/ui/PageContainer";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
+async function loadAnime(jikanId: number) {
+  try {
+    return await getAnimeDetail(jikanId);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
+    throw error;
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const anime = await getAnimeDetail(Number(id));
+  const anime = await loadAnime(Number(id));
 
   return {
     title: `${anime.title} — AniTrack`,
@@ -41,7 +58,7 @@ function TagGroup({ label, tags }: { label: string; tags: Genre[] }) {
 
 export default async function AnimeDetailPage({ params }: Props) {
   const { id } = await params;
-  const anime = await getAnimeDetail(Number(id));
+  const anime = await loadAnime(Number(id));
 
   const genreTags = anime.genres.filter((g) => g.category === "genre");
   const themeTags = anime.genres.filter((g) => g.category === "theme");
@@ -63,40 +80,46 @@ export default async function AnimeDetailPage({ params }: Props) {
     anime.streaming_links !== null && anime.streaming_links.length > 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <div className="flow-root rounded-sm border border-warm-gray bg-paper p-6 shadow-sm">
-        {anime.image_url && (
-          <img
-            src={anime.image_url}
-            alt={anime.title}
-            className="float-left mr-6 mb-4 w-44 rounded-sm object-contain"
-          />
-        )}
+    <PageContainer width="md">
+      <Card>
+        <div className="flex flex-col gap-6 md:flex-row">
+          {anime.image_url && (
+            <Image
+              src={anime.image_url}
+              alt={anime.title}
+              width={176}
+              height={264}
+              className="mx-auto w-44 shrink-0 rounded-sm object-contain md:mx-0"
+            />
+          )}
 
-        <h1 className="font-display text-2xl font-semibold text-ink">
-          {anime.title}
-        </h1>
-        {infoLine && (
-          <p className="mt-1 font-mono text-xs uppercase tracking-wide text-warm-gray">
-            {infoLine}
-          </p>
-        )}
-        {anime.rating && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-warm-gray">
-            {anime.rating}
-          </p>
-        )}
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-2xl font-semibold text-ink">
+              {anime.title}
+            </h1>
+            {infoLine && (
+              <p className="mt-1 font-mono text-xs uppercase tracking-wide text-warm-gray">
+                {infoLine}
+              </p>
+            )}
+            {anime.rating && (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-warm-gray">
+                {anime.rating}
+              </p>
+            )}
 
-        <TagGroup label="Genres" tags={genreTags} />
-        <TagGroup label="Themes" tags={themeTags} />
-        <TagGroup label="Demographic" tags={demographicTags} />
+            <TagGroup label="Genres" tags={genreTags} />
+            <TagGroup label="Themes" tags={themeTags} />
+            <TagGroup label="Demographic" tags={demographicTags} />
 
-        {anime.synopsis && (
-          <p className="mt-4 font-body text-sm leading-relaxed text-ink">
-            {anime.synopsis}
-          </p>
-        )}
-      </div>
+            {anime.synopsis && (
+              <p className="mt-4 font-body text-sm leading-relaxed text-ink">
+                {anime.synopsis}
+              </p>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {anime.trailer_embed_url && (
         <div className="mt-6">
@@ -122,19 +145,18 @@ export default async function AnimeDetailPage({ params }: Props) {
           </h2>
           <div className="mt-2 flex flex-wrap gap-2">
             {anime.streaming_links!.map((link) => (
-              <a
+              <Button
                 key={link.name}
+                variant="secondary"
                 href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-sm border border-ink px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink transition-colors hover:bg-ink hover:text-paper"
+                className="normal-case"
               >
                 {link.name}
-              </a>
+              </Button>
             ))}
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

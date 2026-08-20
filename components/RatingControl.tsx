@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useWatchlistMutation } from "@/hooks/useWatchlistMutation";
 
 const SCALE = Array.from({ length: 10 }, (_, i) => i + 1);
 
@@ -12,33 +12,15 @@ export function RatingControl({
   entryId: number;
   initialScore: number | null;
 }) {
-  const router = useRouter();
+  const { mutate, isSaving, error } = useWatchlistMutation(entryId);
   const [score, setScore] = useState(initialScore);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function commitScore(n: number) {
     const previous = score;
     const next = n === score ? null : n;
     setScore(next);
-    setIsSaving(true);
-    setError(null);
 
-    const response = await fetch(`/api/watchlist/${entryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ score: next }),
-    });
-
-    setIsSaving(false);
-
-    if (!response.ok) {
-      setScore(previous);
-      setError("Couldn't save. Try again.");
-      return;
-    }
-
-    router.refresh();
+    await mutate({ score: next }, undefined, () => setScore(previous));
   }
 
   return (
@@ -60,7 +42,7 @@ export function RatingControl({
             disabled={isSaving}
             aria-label={`Rate ${n} out of 10`}
             aria-pressed={score === n}
-            className={`h-4 flex-1 rounded-sm border transition-colors disabled:opacity-40 ${
+            className={`h-4 flex-1 rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-ink disabled:opacity-40 ${
               score !== null && n <= score
                 ? "border-ink bg-ink"
                 : "border-warm-gray bg-transparent hover:border-ink"
@@ -68,7 +50,11 @@ export function RatingControl({
           />
         ))}
       </div>
-      {error && <p className="mt-1 font-mono text-[10px] text-stub">{error}</p>}
+      {error && (
+        <p className="mt-1 font-mono text-[10px] text-stub" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
