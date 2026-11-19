@@ -1,9 +1,13 @@
 import { getAnimeDetail } from "@/lib/api/anime";
 import { ApiError } from "@/lib/api/client";
+import { getWatchlist } from "@/lib/api/watchlist";
+import { fetchAuthUser } from "@/lib/auth-session";
 import type { Metadata } from "next";
 import type { Genre } from "@/types/anime";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import { AddToWatchlistButton } from "@/components/AddToWatchlistButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageContainer } from "@/components/ui/PageContainer";
@@ -61,9 +65,22 @@ function TagGroup({ label, tags }: { label: string; tags: Genre[] }) {
   );
 }
 
+async function loadWatchlistState(malId: number) {
+  const token = (await cookies()).get("session")?.value;
+  const user = token ? await fetchAuthUser(token) : null;
+  if (!user?.profile_complete) return { signedIn: false, inWatchlist: false };
+
+  const entries = await getWatchlist();
+  return {
+    signedIn: true,
+    inWatchlist: entries.some((entry) => entry.anime.mal_id === malId),
+  };
+}
+
 export default async function AnimeDetailPage({ params }: Props) {
   const { id } = await params;
   const anime = await loadAnime(id);
+  const { signedIn, inWatchlist } = await loadWatchlistState(anime.mal_id);
 
   const genreTags = anime.genres.filter((g) => g.category === "genre");
   const themeTags = anime.genres.filter((g) => g.category === "theme");
@@ -112,6 +129,17 @@ export default async function AnimeDetailPage({ params }: Props) {
                 {anime.rating}
               </p>
             )}
+
+            <div className="mt-4">
+              {signedIn ? (
+                <AddToWatchlistButton
+                  malId={anime.mal_id}
+                  initialInWatchlist={inWatchlist}
+                />
+              ) : (
+                <Button href="/login">Log in to add</Button>
+              )}
+            </div>
 
             <TagGroup label="Genres" tags={genreTags} />
             <TagGroup label="Themes" tags={themeTags} />
